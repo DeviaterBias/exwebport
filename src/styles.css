@@ -72,6 +72,12 @@ a {
   transform: translateY(-2px);
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
 .music-toggle {
   display: inline-flex;
   align-items: center;
@@ -1363,6 +1369,20 @@ a {
 @media (max-width: 768px) {
   .section-shell {
     padding: 5rem 0;
+  }
+
+  .nav-actions {
+    gap: 0;
+  }
+
+  .music-toggle {
+    border-left: 0;
+    padding-left: 0;
+    font-size: 0.66rem;
+  }
+
+  .music-toggle span {
+    letter-spacing: 0.14em;
   }
 
   .pillars-command {

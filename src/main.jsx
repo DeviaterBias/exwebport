@@ -283,8 +283,11 @@ function MusicControl() {
   const audioRef = React.useRef(null);
   const restartTimerRef = React.useRef(null);
   const startTimerRef = React.useRef(null);
-  const musicOnRef = React.useRef(true);
-  const [musicOn, setMusicOn] = React.useState(true);
+  const musicOnRef = React.useRef(false);
+  const [musicOn, setMusicOn] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("exrealm-music-enabled") !== "false";
+  });
 
   const clearRestartTimer = React.useCallback(() => {
     if (restartTimerRef.current) {
@@ -293,16 +296,23 @@ function MusicControl() {
     }
   }, []);
 
+  const setMusicPreference = React.useCallback((enabled, persist = true) => {
+    musicOnRef.current = enabled;
+    setMusicOn(enabled);
+    if (persist) {
+      window.localStorage.setItem("exrealm-music-enabled", enabled ? "true" : "false");
+    }
+  }, []);
+
   const playMusic = React.useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     audio.play().catch(() => {
-      musicOnRef.current = false;
-      setMusicOn(false);
+      setMusicPreference(false, false);
       clearRestartTimer();
     });
-  }, [clearRestartTimer]);
+  }, [clearRestartTimer, setMusicPreference]);
 
   React.useEffect(() => {
     musicOnRef.current = musicOn;
@@ -331,8 +341,10 @@ function MusicControl() {
   }, [clearRestartTimer, playMusic]);
 
   React.useEffect(() => {
+    musicOnRef.current = musicOn;
+    const shouldAttemptAutoplay = musicOn;
     startTimerRef.current = window.setTimeout(() => {
-      if (musicOnRef.current) playMusic();
+      if (shouldAttemptAutoplay && musicOnRef.current) playMusic();
     }, 2000);
 
     return () => {
@@ -347,14 +359,12 @@ function MusicControl() {
 
     if (musicOn) {
       clearRestartTimer();
-      musicOnRef.current = false;
       audio.pause();
-      setMusicOn(false);
+      setMusicPreference(false);
       return;
     }
 
-    musicOnRef.current = true;
-    setMusicOn(true);
+    setMusicPreference(true);
     playMusic();
   };
 
@@ -391,11 +401,13 @@ function Hero() {
           <a href="#top" className="font-display text-sm tracking-[0.42em] text-silver">
             EXREALM
           </a>
-          <div className="hidden items-center gap-8 text-xs uppercase tracking-[0.26em] text-silver/70 md:flex">
-            <a href="#world">World</a>
-            <a href="#characters">Characters</a>
-            <a href="#story">Story</a>
-            <a href="#gallery">Gallery</a>
+          <div className="nav-actions">
+            <div className="hidden items-center gap-8 text-xs uppercase tracking-[0.26em] text-silver/70 md:flex">
+              <a href="#world">World</a>
+              <a href="#characters">Characters</a>
+              <a href="#story">Story</a>
+              <a href="#gallery">Gallery</a>
+            </div>
             <MusicControl />
           </div>
         </nav>
