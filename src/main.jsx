@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
+  Play,
+  X,
   Binary,
   Clapperboard,
   Cpu,
@@ -280,6 +282,7 @@ function Particles() {
 }
 
 function MusicControl() {
+  const cinematicActive = React.useRef(false);
   const audioRef = React.useRef(null);
   const restartTimerRef = React.useRef(null);
   const startTimerRef = React.useRef(null);
@@ -306,13 +309,27 @@ function MusicControl() {
 
   const playMusic = React.useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || cinematicActive.current) return;
 
     audio.play().catch(() => {
       setMusicPreference(false, false);
       clearRestartTimer();
     });
   }, [clearRestartTimer, setMusicPreference]);
+
+  React.useEffect(() => {
+    const handleCinematic = (event) => {
+      cinematicActive.current = event.detail;
+      if (event.detail) {
+        clearRestartTimer();
+        audioRef.current?.pause();
+      } else if (musicOnRef.current) {
+        playMusic();
+      }
+    };
+    window.addEventListener("exrealm-cinematic", handleCinematic);
+    return () => window.removeEventListener("exrealm-cinematic", handleCinematic);
+  }, [clearRestartTimer, playMusic]);
 
   React.useEffect(() => {
     musicOnRef.current = musicOn;
@@ -800,6 +817,62 @@ function Gallery() {
   );
 }
 
+function Cinematics() {
+  const [selected, setSelected] = React.useState(null);
+  const videos = React.useRef({});
+  const notify = (active) => window.dispatchEvent(new CustomEvent("exrealm-cinematic", { detail: active }));
+
+  React.useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent("exrealm-cinematic", { detail: false }));
+  }, []);
+
+  const close = () => {
+    Object.values(videos.current).forEach((video) => video?.pause());
+    setSelected(null);
+    notify(false);
+  };
+
+  return (
+    <section id="cinematics" className="section-shell cinematics-section">
+      <div className="mx-auto max-w-7xl px-6">
+        <h2 className="section-kicker mb-8">CINEMATICS</h2>
+        <div className="cinematics-grid">
+          {["PV001", "PV002"].map((id) => (
+            <article key={id} className="cinematic-item">
+              <div className="cinematic-screen">
+                {selected === id ? (
+                  <>
+                    <video
+                      ref={(node) => { videos.current[id] = node; }}
+                      src={`/assets/${id}.mp4`}
+                      poster={`/assets/${id}cover.png`}
+                      controls autoPlay playsInline preload="metadata"
+                      onPlay={() => notify(true)}
+                      onEnded={() => notify(false)}
+                      onError={() => notify(false)}
+                    />
+                    <button className="cinematic-close" type="button" onClick={close} aria-label="Close video" title="Close video"><X size={20} /></button>
+                  </>
+                ) : (
+                  <button className="cinematic-cover" type="button" aria-label={`Play ${id}`} onClick={() => {
+                    Object.values(videos.current).forEach((video) => video?.pause());
+                    notify(true);
+                    setSelected(id);
+                  }}>
+                    <img src={`/assets/${id}cover.png`} alt={`${id} cinematic cover`} loading="lazy" />
+                    <span className="cinematic-play"><Play size={28} fill="currentColor" /></span>
+                  </button>
+                )}
+              </div>
+              <h3 className="cinematic-name">{id}</h3>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   return (
     <>
@@ -810,6 +883,7 @@ function App() {
       <FactionCharacters />
       <Pillars />
       <StoryArcs />
+      <Cinematics />
       <CreativeWorkflow />
       <Gallery />
       <footer className="border-t border-white/10 bg-black px-6 py-12 text-center">
